@@ -1,13 +1,30 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import Layout from "@/components/Layout";
+import Dashboard from "@/components/Dashboard";
+import EssayAssistant from "@/components/EssayAssistant";
+import StudyPlanner from "@/components/StudyPlanner";
+import LearningHub from "@/components/LearningHub";
 
 const Index = () => {
+  const [activeSection, setActiveSection] = useState("dashboard");
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case "essay":
+        return <EssayAssistant />;
+      case "schedule":
+        return <StudyPlanner />;
+      case "topics":
+        return <LearningHub />;
+      default:
+        return <Dashboard onSectionChange={setActiveSection} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <Layout activeSection={activeSection} onSectionChange={setActiveSection}>
+      {renderContent()}
+    </Layout>
   );
 };
 
