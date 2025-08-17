@@ -4,6 +4,7 @@ import Dashboard from "@/components/Dashboard";
 import EssayAssistant from "@/components/EssayAssistant";
 import StudyPlanner from "@/components/StudyPlanner";
 import LearningHub from "@/components/LearningHub";
+import AuthGate from "@/components/AuthGate";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -22,9 +23,11 @@ const Index = () => {
   };
 
   return (
-    <Layout activeSection={activeSection} onSectionChange={setActiveSection}>
-      {renderContent()}
-    </Layout>
+    <AuthGate>
+      <Layout activeSection={activeSection} onSectionChange={setActiveSection}>
+        {renderContent()}
+      </Layout>
+    </AuthGate>
   );
 };
 
