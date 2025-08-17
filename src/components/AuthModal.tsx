@@ -26,12 +26,15 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
     setLoading(true);
 
     try {
+      const redirectUrl = `${window.location.origin}/`;
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
-            name,
+            full_name: name,
           },
         },
       });
@@ -40,9 +43,15 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
 
       toast({
         title: "Account created successfully!",
-        description: "Please check your email to verify your account.",
+        description: "Please check your email to verify your account before signing in.",
       });
+      
+      // Clear form
+      setEmail("");
+      setPassword("");
+      setName("");
     } catch (error) {
+      console.error("Signup error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "An error occurred",
@@ -63,16 +72,28 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Sign in error:", error);
+        
+        // Provide specific error messages
+        if (error.message.includes("Email not confirmed")) {
+          throw new Error("Please check your email and confirm your account before signing in.");
+        } else if (error.message.includes("Invalid login credentials")) {
+          throw new Error("Invalid email or password. Please check your credentials.");
+        }
+        throw error;
+      }
 
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
+      
+      onClose();
     } catch (error) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        title: "Sign In Error",
+        description: error instanceof Error ? error.message : "An error occurred during sign in",
         variant: "destructive",
       });
     } finally {
