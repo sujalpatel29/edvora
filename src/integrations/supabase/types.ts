@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      essays: {
+        Row: {
+          analysis: Json | null
+          content: string
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json | null
+          content: string
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json | null
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_content: {
+        Row: {
+          content: Json
+          content_type: string
+          created_at: string
+          id: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          content_type: string
+          created_at?: string
+          id?: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          content_type?: string
+          created_at?: string
+          id?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -37,6 +94,89 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      study_plans: {
+        Row: {
+          created_at: string
+          daily_study_hours: number
+          days_needed: number | null
+          id: string
+          syllabus_content: string
+          target_date: string
+          title: string
+          total_estimated_hours: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_study_hours: number
+          days_needed?: number | null
+          id?: string
+          syllabus_content: string
+          target_date: string
+          title: string
+          total_estimated_hours?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_study_hours?: number
+          days_needed?: number | null
+          id?: string
+          syllabus_content?: string
+          target_date?: string
+          title?: string
+          total_estimated_hours?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      study_topics: {
+        Row: {
+          completed: boolean
+          created_at: string
+          difficulty: string
+          estimated_hours: number
+          id: string
+          name: string
+          order_index: number
+          priority: string
+          study_plan_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          difficulty: string
+          estimated_hours: number
+          id?: string
+          name: string
+          order_index: number
+          priority: string
+          study_plan_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          difficulty?: string
+          estimated_hours?: number
+          id?: string
+          name?: string
+          order_index?: number
+          priority?: string
+          study_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_topics_study_plan_id_fkey"
+            columns: ["study_plan_id"]
+            isOneToOne: false
+            referencedRelation: "study_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
