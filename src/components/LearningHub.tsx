@@ -13,7 +13,7 @@ interface Question {
   options: string[];
   correct: number;
   explanation: string;
-}
+}  
 
 interface Flashcard {
   id: number;
@@ -172,7 +172,7 @@ ${searchTopic} is an important concept that requires practice and understanding.
         id: 1,
         front: `What is ${searchTopic}?`,
         back: `${searchTopic} is a fundamental concept in computer science that helps solve complex problems through structured approaches.`,
-        difficulty: 'Easy'
+        difficulty: 'Easy'   
       },
       {
         id: 2,

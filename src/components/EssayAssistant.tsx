@@ -1,20 +1,99 @@
 import { useState } from "react";
+import { generateText } from "../integrations/gemini/generate";
+//added for essay assistant
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Brain, FileText, CheckCircle, AlertCircle, Lightbulb, Zap } from "lucide-react";
+import {
+  Brain,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  Lightbulb,
+  Zap,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+//function for parsing JSON lines
+function parseJsonLines(data: string): {
+  strengths: string[];
+  improvements: string[];
+  scoreLine: string; // keep raw line 1 as string
+  suggestionLine: string; // keep raw line 2 as string
+} {
+  // Split and drop blank lines
+  const lines = stripCodeFences(data)
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const scoreArr = lines[0] ? parseLine(lines[0]) : [];
+  const suggestionArr = lines[1] ? parseLine(lines[1]) : [];
+  const strengths = lines[2] ? parseLine(lines[2]) : [];
+  const improvements = lines[3] ? parseLine(lines[3]) : [];
+
+  return {
+    // Keep raw line 1/2 (after cleanup) to parse more flexibly below
+    scoreLine: scoreArr[0] ?? "",
+    suggestionLine: suggestionArr[0] ?? "",
+    strengths,
+    improvements,
+  };
+}
+
+function stripCodeFences(t: string) {
+  return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();
+}
+
+function toStringArray(value: unknown): string[] {
+  // Normalize any value to string[]
+  if (Array.isArray(value)) return value.map((v) => String(v).trim());
+  if (value === null || value === undefined) return [];
+  return [String(value).trim()];
+}
+
+function parseLine(line: string): string[] {
+  const clean = stripCodeFences(line).trim();
+
+  // Try JSON first
+  try {
+    const parsed = JSON.parse(clean);
+    return toStringArray(parsed);
+  } catch {
+    // Not valid JSON – try to extract numbers or return whole line
+    return [clean];
+  }
+}
 
 const EssayAssistant = () => {
   const [essay, setEssay] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [feedback, setFeedback] = useState<{
-    grammar: Array<{ text: string; suggestion: string; severity: 'low' | 'medium' | 'high' }>;
-    style: Array<{ text: string; suggestion: string; type: 'clarity' | 'flow' | 'vocabulary' }>;
+    grammar: Array<{
+      text: string;
+      suggestion: string;
+      severity: "low" | "medium" | "high";
+    }>;
+    style: Array<{
+      text: string;
+      suggestion: string;
+      type: "clarity" | "flow" | "vocabulary";
+    }>;
     structure: Array<{ section: string; feedback: string; score: number }>;
-    overall: { score: number; summary: string; strengths: string[]; improvements: string[] };
+    overall: {
+      score: number;
+      summary: string;
+      strengths: string[];
+      improvements: string[];
+    };
   } | null>(null);
   const { toast } = useToast();
 
@@ -29,56 +108,121 @@ const EssayAssistant = () => {
     }
 
     setIsAnalyzing(true);
-    
-    // Simulate AI analysis
-    setTimeout(() => {
-      const mockFeedback = {
-        grammar: [
-          { text: "sentence structure", suggestion: "Consider breaking this long sentence into two shorter ones for better readability.", severity: 'medium' as const },
-          { text: "comma usage", suggestion: "Add a comma before 'and' in this compound sentence.", severity: 'low' as const },
-        ],
-        style: [
-          { text: "word choice", suggestion: "Consider using 'demonstrates' instead of 'shows' for more academic tone.", type: 'vocabulary' as const },
-          { text: "transition", suggestion: "Add a transitional phrase to improve flow between paragraphs.", type: 'flow' as const },
-        ],
-        structure: [
-          { section: "Introduction", feedback: "Strong opening with clear thesis statement.", score: 85 },
-          { section: "Body Paragraphs", feedback: "Good supporting evidence, but could benefit from stronger topic sentences.", score: 78 },
-          { section: "Conclusion", feedback: "Summarizes main points well, consider adding a call to action.", score: 82 },
-        ],
+
+    try {
+      // 🔑 Call Gemini
+      const analysisRaw =
+        await generateText(`You are an AI Essay Assistant. Analyze the following essay and provide feedback as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+
+Essay: ${essay}
+
+Provide your analysis in this exact JSON structure:
+
+{
+  "score": <number 0-100>,
+  "summary": "<1–2 sentence summary>",
+  "strengths": ["point1", "point2", "point3"],
+  "improvements": ["point1", "point2", "point3"],
+  "grammar": [
+    { "text": "<issue>", "severity": "low|medium|high", "suggestion": "<correction>" }
+  ],
+  "style": [
+    { "text": "<issue>", "type": "clarity|flow|vocabulary", "suggestion": "<recommendation>" }
+  ]
+}
+
+Note:
+-give strength and improvements in few words.
+-
+-example of grammar and style:
+"grammar": [
+  { "text": "sentence structure", "severity": "medium", "suggestion": "Split long sentences into shorter ones." },
+  { "text": "comma usage", "severity": "low", "suggestion": "Add a comma before 'and' in compound sentences." }
+ ],
+ "style": [
+  { "text": "word choice", "type": "vocabulary", "suggestion": "Use 'demonstrates' instead of 'shows'." },
+  { "text": "transition", "type": "flow", "suggestion": "Add transitional phrases for smoother flow." }
+ ]
+
+`);
+
+      console.log("Gemini Strengths Response :", analysisRaw);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(stripCodeFences(analysisRaw));
+      } catch (e) {
+        console.error("Parse error", e, analysisRaw);
+        toast({
+          title: "AI response invalid",
+          description: "Could not parse AI response.",
+          variant: "destructive",
+        });
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Extract first 1–3 digit number from the line
+      // const scoreMatch = scoreLine.match(/\b(\d{1,3})\b/);
+      // const parsedScore = scoreMatch ? Math.min(100, parseInt(scoreMatch[1], 10)) : 0;
+
+      // const parsedSummary = suggestionLine;
+
+      // console.log("Parsed Score:", parsedScore);
+      // console.log("Parsed Summary:", parsedSummary);
+
+      const finalFeedback = {
+        grammar: parsed.grammar || [],
+        style: parsed.style || [],
+        structure: [], // keep for future expansion if you want
         overall: {
-          score: 82,
-          summary: "Well-structured essay with good arguments. Focus on improving sentence variety and transitions.",
-          strengths: ["Clear thesis statement", "Strong evidence", "Logical organization"],
-          improvements: ["Sentence variety", "Transitions between ideas", "More sophisticated vocabulary"],
+          score: parsed.score,
+          summary: parsed.summary,
+          strengths: parsed.strengths || [],
+          improvements: parsed.improvements || [],
         },
       };
-      
-      setFeedback(mockFeedback);
-      setIsAnalyzing(false);
-      
+
+      setFeedback(finalFeedback);
+
       toast({
         title: "Analysis Complete!",
         description: "Your essay has been analyzed. Check the feedback below.",
       });
-    }, 2000);
+    } catch (err) {
+      toast({
+        title: "Error analyzing essay",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'high': return 'destructive';
-      case 'medium': return 'warning';
-      case 'low': return 'success';
-      default: return 'secondary';
+      case "high":
+        return "destructive";
+      case "medium":
+        return "warning";
+      case "low":
+        return "success";
+      default:
+        return "secondary";
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'clarity': return <CheckCircle className="h-4 w-4" />;
-      case 'flow': return <Zap className="h-4 w-4" />;
-      case 'vocabulary': return <Lightbulb className="h-4 w-4" />;
-      default: return <FileText className="h-4 w-4" />;
+      case "clarity":
+        return <CheckCircle className="h-4 w-4" />;
+      case "flow":
+        return <Zap className="h-4 w-4" />;
+      case "vocabulary":
+        return <Lightbulb className="h-4 w-4" />;
+      default:
+        return <FileText className="h-4 w-4" />;
     }
   };
 
@@ -90,7 +234,9 @@ const EssayAssistant = () => {
         </div>
         <div>
           <h1 className="text-2xl font-bold">AI Essay Assistant</h1>
-          <p className="text-muted-foreground">Get intelligent feedback to improve your writing</p>
+          <p className="text-muted-foreground">
+            Get intelligent feedback to improve your writing
+          </p>
         </div>
       </div>
 
@@ -115,9 +261,10 @@ const EssayAssistant = () => {
             />
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {essay.length} characters, ~{Math.ceil(essay.trim().split(/\s+/).length)} words
+                {essay.length} characters, ~
+                {Math.ceil(essay.trim().split(/\s+/).length)} words
               </p>
-              <Button 
+              <Button
                 onClick={analyzessay}
                 disabled={isAnalyzing || !essay.trim()}
                 variant="hero"
@@ -159,10 +306,15 @@ const EssayAssistant = () => {
                   </p>
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-medium text-success mb-2">Strengths</h4>
+                      <h4 className="font-medium text-success mb-2">
+                        Strengths
+                      </h4>
                       <ul className="space-y-1">
                         {feedback.overall.strengths.map((strength, index) => (
-                          <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
+                          <li
+                            key={index}
+                            className="text-sm text-muted-foreground flex items-center gap-2"
+                          >
                             <CheckCircle className="h-3 w-3 text-success" />
                             {strength}
                           </li>
@@ -171,14 +323,21 @@ const EssayAssistant = () => {
                     </div>
                     <Separator />
                     <div>
-                      <h4 className="font-medium text-warning mb-2">Areas for Improvement</h4>
+                      <h4 className="font-medium text-warning mb-2">
+                        Areas for Improvement
+                      </h4>
                       <ul className="space-y-1">
-                        {feedback.overall.improvements.map((improvement, index) => (
-                          <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
-                            <AlertCircle className="h-3 w-3 text-warning" />
-                            {improvement}
-                          </li>
-                        ))}
+                        {feedback.overall.improvements.map(
+                          (improvement, index) => (
+                            <li
+                              key={index}
+                              className="text-sm text-muted-foreground flex items-center gap-2"
+                            >
+                              <AlertCircle className="h-3 w-3 text-warning" />
+                              {improvement}
+                            </li>
+                          )
+                        )}
                       </ul>
                     </div>
                   </div>
@@ -192,14 +351,24 @@ const EssayAssistant = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {feedback.grammar.map((issue, index) => (
-                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                    <div
+                      key={index}
+                      className="border rounded-lg p-3 space-y-2"
+                    >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">{issue.text}</span>
-                        <Badge variant={getSeverityColor(issue.severity)} className="text-xs">
+                        <span className="font-medium text-sm">
+                          {issue.text}
+                        </span>
+                        <Badge
+                          variant={getSeverityColor(issue.severity)}
+                          className="text-xs"
+                        >
                           {issue.severity}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{issue.suggestion}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {issue.suggestion}
+                      </p>
                     </div>
                   ))}
                 </CardContent>
@@ -212,17 +381,24 @@ const EssayAssistant = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {feedback.style.map((suggestion, index) => (
-                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                    <div
+                      key={index}
+                      className="border rounded-lg p-3 space-y-2"
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {getTypeIcon(suggestion.type)}
-                          <span className="font-medium text-sm">{suggestion.text}</span>
+                          <span className="font-medium text-sm">
+                            {suggestion.text}
+                          </span>
                         </div>
                         <Badge variant="secondary" className="text-xs">
                           {suggestion.type}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{suggestion.suggestion}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {suggestion.suggestion}
+                      </p>
                     </div>
                   ))}
                 </CardContent>
@@ -236,7 +412,8 @@ const EssayAssistant = () => {
                 </div>
                 <h3 className="text-lg font-medium mb-2">Ready to Analyze</h3>
                 <p className="text-muted-foreground">
-                  Enter your essay text and click "Analyze Essay" to get detailed AI-powered feedback on grammar, style, and structure.
+                  Enter your essay text and click "Analyze Essay" to get
+                  detailed AI-powered feedback on grammar, style, and structure.
                 </p>
               </CardContent>
             </Card>
