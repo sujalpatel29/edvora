@@ -1,13 +1,57 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, Upload, Clock, Target, BookOpen, FileText } from "lucide-react";
+import { Calendar, Upload, Clock, Target, BookOpen} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateText } from "../integrations/gemini/generate";
+
+function parseJsonLines(data: string): {
+  totalHours: string; // keep raw line 1 as string
+  daysNeeded: string; // keep raw line 2 as string
+} {
+  // Split and drop blank lines
+  const lines = stripCodeFences(data)
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const totalHoursArr = lines[0] ? parseLine(lines[0]) : [];
+  const daysNeededArr = lines[1] ? parseLine(lines[1]) : [];
+
+  return {
+    // Keep raw line 1/2 (after cleanup) to parse more flexibly below
+    totalHours: totalHoursArr[0] ?? "",
+    daysNeeded: daysNeededArr[0] ?? "",
+  };
+}
+
+function stripCodeFences(t: string) {
+  return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();
+}
+
+function toStringArray(value: unknown): string[] {
+  // Normalize any value to string[]
+  if (Array.isArray(value)) return value.map((v) => String(v).trim());
+  if (value === null || value === undefined) return [];
+  return [String(value).trim()];
+}
+
+function parseLine(line: string): string[] {
+  const clean = stripCodeFences(line).trim();
+
+  // Try JSON first
+  try {
+    const parsed = JSON.parse(clean);
+    return toStringArray(parsed);
+  } catch {
+    // Not valid JSON – try to extract numbers or return whole line
+    return [clean];
+  }
+}
 
 interface StudyTopic {
   name: string;
@@ -29,42 +73,50 @@ const StudyPlanner = () => {
   const [syllabusText, setSyllabusText] = useState("");
   const [studyHours, setStudyHours] = useState("2");
   const [targetDate, setTargetDate] = useState("");
+  // const [startDate, setStartDate] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [schedule, setSchedule] = useState<StudySchedule | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === "application/pdf") {
-      // Simulate PDF text extraction
-      toast({
-        title: "PDF uploaded successfully",
-        description: "Extracting text from your syllabus...",
-      });
+  // const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = event.target.files?.[0];
+  //   if (file && file.type === "application/pdf") {
+  //     // Simulate PDF text extraction
+  //     toast({
+  //       title: "PDF uploaded successfully",
+  //       description: "Extracting text from your syllabus...",
+  //     });
+  //     try {
+  //           const dataBuffer = Buffer.from(await file.arrayBuffer());
+  //           // const data = await pdfParse(dataBuffer);
+  //           // console.log("Extracted text:", data.text);
+  //         } catch (error) {
+  //           console.error("Failed to extract text from PDF:", error);
+  //         }
       
-      setTimeout(() => {
-        setSyllabusText("Introduction to Computer Science\n\n1. Programming Fundamentals\n   - Variables and Data Types\n   - Control Structures\n   - Functions and Methods\n\n2. Data Structures\n   - Arrays and Lists\n   - Stacks and Queues\n   - Trees and Graphs\n\n3. Algorithms\n   - Sorting Algorithms\n   - Search Algorithms\n   - Algorithm Complexity\n\n4. Object-Oriented Programming\n   - Classes and Objects\n   - Inheritance\n   - Polymorphism\n\n5. Web Development\n   - HTML/CSS\n   - JavaScript\n   - Frameworks");
+  //     setTimeout(() => {
+  //       setSyllabusText("Introduction to Computer Science\n\n1. Programming Fundamentals\n   - Variables and Data Types\n   - Control Structures\n   - Functions and Methods\n\n2. Data Structures\n   - Arrays and Lists\n   - Stacks and Queues\n   - Trees and Graphs\n\n3. Algorithms\n   - Sorting Algorithms\n   - Search Algorithms\n   - Algorithm Complexity\n\n4. Object-Oriented Programming\n   - Classes and Objects\n   - Inheritance\n   - Polymorphism\n\n5. Web Development\n   - HTML/CSS\n   - JavaScript\n   - Frameworks");
         
-        toast({
-          title: "Text extracted successfully",
-          description: "Your syllabus content is ready for schedule generation.",
-        });
-      }, 1500);
-    } else {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file.",
-        variant: "destructive",
-      });
-    }
-  };
+  //       toast({
+  //         title: "Text extracted successfully",
+  //         description: "Your syllabus content is ready for schedule generation.",
+  //       });
+  //     }, 1500);
+  //   } else {
+  //     toast({
+  //       title: "Invalid file type",
+  //       description: "Please upload a PDF file.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
   const generateSchedule = async () => {
     if (!syllabusText.trim()) {
       toast({
         title: "Please add syllabus content",
-        description: "Upload a PDF or enter your syllabus text manually.",
+        description: "Enter your syllabus text manually.",
         variant: "destructive",
       });
       return;
@@ -81,31 +133,101 @@ const StudyPlanner = () => {
 
     setIsGenerating(true);
 
+    console.log("holahola",syllabusText);
+    console.log(studyHours);
+    console.log(targetDate);
+
+    try {
+          // 🔑 CHANGE 3: Modified prompt to include enhanced version
+          const today: Date = new Date();
+          const year = today.getFullYear();
+          const month = today.getMonth() + 1; // Add 1 because months are 0-indexed
+          const day = today.getDate();
+
+          console.log(`Today's date: ${year}-${month}-${day}`);
+
+          const analysisRaw =
+            await generateText(`You are an AI Schedule generator for given syllabus. Analyze the following details(Syllabus of Subject, Study hours per day and taget date at which study should be completed) and provide feedback as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+    
+          Syllabus: "${syllabusText}"
+
+          stydy Hours: ${studyHours}
+
+          today date: ${year}-${month}-${day}  (YYYY-MM-DD)
+          Target date: ${targetDate} (YYYY-MM-DD)
+          
+          Provide your analysis in this exact JSON structure:
+          
+          {
+            "totalHours": <total number of hours required>,
+            "daysNeeded": "<number of days required>",
+            "studyTopics": [
+              { "name": "<nameOfChapter>", "difficulty": "Easy|Medium|Hard", "priority": "Low|Medium|High", "estimatedHours": <estimated study Hours required for given chapter}
+            ]
+          }
+          
+          Note:
+          -If given time duration is too much then you can suggest "totalHours" and "daysNeeded" according to study hours needed for given chapters.
+          -Goal is to get isights about every chapter but not very deep that it takes too much time to study.
+          -Give "totalHours" and "daysNeeded" as time remaining to target date based on study hours per day.
+          -example of StydyTopics and style:
+          "studyTopics": [
+            { "chapterName": "Programming Fundamentals", "difficulty": "Easy", "priority": "High" },
+            { "chapterName": "Data Structures", "difficulty": "Medium", "priority": "Medium" },
+          ],
+          
+          `);
+    console.log("Gemini Response :", analysisRaw);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(stripCodeFences(analysisRaw));
+      } catch (e) {
+        console.error("Parse error", e, analysisRaw);
+        toast({
+          title: "AI response invalid",
+          description: "Could not parse AI response.",
+          variant: "destructive",
+        });
+        setIsGenerating(false);
+        return;
+      }
+
+
+
     // Simulate AI processing
-    setTimeout(() => {
-      const mockSchedule: StudySchedule = {
-        topics: [
-          { name: "Programming Fundamentals", estimatedHours: 15, difficulty: "Easy", priority: "High", completed: false },
-          { name: "Data Structures", estimatedHours: 20, difficulty: "Medium", priority: "High", completed: false },
-          { name: "Algorithms", estimatedHours: 18, difficulty: "Hard", priority: "High", completed: false },
-          { name: "Object-Oriented Programming", estimatedHours: 12, difficulty: "Medium", priority: "Medium", completed: false },
-          { name: "Web Development", estimatedHours: 10, difficulty: "Easy", priority: "Low", completed: false },
-        ],
-        totalHours: 75,
-        daysNeeded: Math.ceil(75 / parseInt(studyHours)),
+    
+      const finalSchedule: StudySchedule = {
+        topics: parsed.studyTopics || [],
+        totalHours: parsed.totalHours,
+        daysNeeded: parsed.daysNeeded,
         startDate: new Date().toISOString().split('T')[0],
         endDate: targetDate,
       };
 
-      setSchedule(mockSchedule);
+      setSchedule(finalSchedule);
       setIsGenerating(false);
 
       toast({
         title: "Schedule generated successfully!",
         description: "Your personalized study plan is ready.",
       });
-    }, 3000);
+    
+    } catch (err) {
+      toast({
+        title: "Error analyzing essay",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      // setIsAnalyzing(false);
+      console.log("hello");
+    }
   };
+  console.log("hello",syllabusText);
+  console.log();
+  console.log(studyHours);
+  console.log(targetDate);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -144,14 +266,14 @@ const StudyPlanner = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5 text-primary" />
-                Upload Syllabus
+                Enter Syllabus
               </CardTitle>
               <CardDescription>
-                Upload a PDF or enter your syllabus content manually
+                Enter your syllabus content manually
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+              {/* <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -173,7 +295,7 @@ const StudyPlanner = () => {
               
               <div className="text-center text-sm text-muted-foreground">
                 or
-              </div>
+              </div> */}
               
               <Textarea
                 placeholder="Enter your syllabus content here..."
@@ -264,13 +386,13 @@ const StudyPlanner = () => {
                       <p className="text-sm text-muted-foreground">Days Needed</p>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Progress</span>
                       <span>0% Complete</span>
                     </div>
                     <Progress value={0} className="h-2" />
-                  </div>
+                  </div> */}
                 </CardContent>
               </Card>
 
@@ -305,7 +427,7 @@ const StudyPlanner = () => {
                           <p className="text-xs text-muted-foreground">estimated</p>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
+                      {/* <div className="flex items-center justify-between">
                         <Progress value={topic.completed ? 100 : 0} className="flex-1 mr-3 h-2" />
                         <Button
                           variant={topic.completed ? "success" : "outline"}
@@ -314,7 +436,7 @@ const StudyPlanner = () => {
                         >
                           {topic.completed ? "Completed" : "Start"}
                         </Button>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </CardContent>
@@ -328,7 +450,7 @@ const StudyPlanner = () => {
                 </div>
                 <h3 className="text-lg font-medium mb-2">Ready to Plan</h3>
                 <p className="text-muted-foreground">
-                  Upload your syllabus and set your preferences to generate a personalized study schedule.
+                  Enter your syllabus and set your preferences to generate a personalized study schedule.
                 </p>
               </CardContent>
             </Card>

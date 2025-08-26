@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Lightbulb,
   Zap,
+  Copy,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -94,8 +96,26 @@ const EssayAssistant = () => {
       strengths: string[];
       improvements: string[];
     };
+    enhancedVersion: string; // 🔑 CHANGE 1: Added enhanced version to feedback state
   } | null>(null);
   const { toast } = useToast();
+
+  // 🔑 CHANGE 2: Added function to copy enhanced version to clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "Enhanced version copied to clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Please try selecting and copying manually.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const analyzessay = async () => {
     if (!essay.trim()) {
@@ -110,43 +130,51 @@ const EssayAssistant = () => {
     setIsAnalyzing(true);
 
     try {
-      // 🔑 Call Gemini
+      // 🔑 CHANGE 3: Modified prompt to include enhanced version
       const analysisRaw =
         await generateText(`You are an AI Essay Assistant. Analyze the following essay and provide feedback as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
 
-Essay: ${essay}
+      Essay: ${essay}
 
-Provide your analysis in this exact JSON structure:
+      Provide your analysis in this exact JSON structure:
 
-{
-  "score": <number 0-100>,
-  "summary": "<1–2 sentence summary>",
-  "strengths": ["point1", "point2", "point3"],
-  "improvements": ["point1", "point2", "point3"],
-  "grammar": [
-    { "text": "<issue>", "severity": "low|medium|high", "suggestion": "<correction>" }
-  ],
-  "style": [
-    { "text": "<issue>", "type": "clarity|flow|vocabulary", "suggestion": "<recommendation>" }
-  ]
-}
+      {
+        "score": <number 0-100>,
+        "summary": "<1–2 sentence summary>",
+        "strengths": ["point1", "point2", "point3"],
+        "improvements": ["point1", "point2", "point3"],
+        "grammar": [
+          { "text": "<issue>", "severity": "low|medium|high", "suggestion": "<correction>" }
+        ],
+        "style": [
+          { "text": "<issue>", "type": "clarity|flow|vocabulary", "suggestion": "<recommendation>" }
+        ],
+        "enhancedVersion": "<improved version of the essay with better grammar, style, structure, and flow while maintaining the original meaning and voice>"
+      }
 
-Note:
--give strength and improvements in few words.
--
--example of grammar and style:
-"grammar": [
-  { "text": "sentence structure", "severity": "medium", "suggestion": "Split long sentences into shorter ones." },
-  { "text": "comma usage", "severity": "low", "suggestion": "Add a comma before 'and' in compound sentences." }
- ],
- "style": [
-  { "text": "word choice", "type": "vocabulary", "suggestion": "Use 'demonstrates' instead of 'shows'." },
-  { "text": "transition", "type": "flow", "suggestion": "Add transitional phrases for smoother flow." }
- ]
+      Note:
+      -give strength and improvements in few words.
+      -example of grammar and style:
+      "grammar": [
+        { "text": "sentence structure", "severity": "medium", "suggestion": "Split long sentences into shorter ones." },
+        { "text": "comma usage", "severity": "low", "suggestion": "Add a comma before 'and' in compound sentences." }
+      ],
+      "style": [
+        { "text": "word choice", "type": "vocabulary", "suggestion": "Use 'demonstrates' instead of 'shows'." },
+        { "text": "transition", "type": "flow", "suggestion": "Add transitional phrases for smoother flow." }
+      ]
 
-`);
+      For the enhancedVersion:
+      - Keep the original meaning and voice of the essay
+      - Fix grammar and punctuation errors
+      - Improve sentence structure and flow
+      - Use more sophisticated vocabulary where appropriate
+      - Ensure logical organization and smooth transitions
+      - Maintain the same length approximately
 
-      console.log("Gemini Strengths Response :", analysisRaw);
+      `);
+
+      console.log("Gemini Response :", analysisRaw);
 
       let parsed;
       try {
@@ -162,15 +190,7 @@ Note:
         return;
       }
 
-      // Extract first 1–3 digit number from the line
-      // const scoreMatch = scoreLine.match(/\b(\d{1,3})\b/);
-      // const parsedScore = scoreMatch ? Math.min(100, parseInt(scoreMatch[1], 10)) : 0;
-
-      // const parsedSummary = suggestionLine;
-
-      // console.log("Parsed Score:", parsedScore);
-      // console.log("Parsed Summary:", parsedSummary);
-
+      // 🔑 CHANGE 4: Added enhanced version to final feedback
       const finalFeedback = {
         grammar: parsed.grammar || [],
         style: parsed.style || [],
@@ -181,6 +201,7 @@ Note:
           strengths: parsed.strengths || [],
           improvements: parsed.improvements || [],
         },
+        enhancedVersion: parsed.enhancedVersion || "", // Added enhanced version
       };
 
       setFeedback(finalFeedback);
@@ -203,11 +224,11 @@ Note:
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "high":
-        return "destructive";
+        return "success";
       case "medium":
         return "warning";
       case "low":
-        return "success";
+        return "destructive";
       default:
         return "secondary";
     }
@@ -241,56 +262,99 @@ Note:
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Essay Input */}
-        <Card className="bg-gradient-card border-0 shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Your Essay
-            </CardTitle>
-            <CardDescription>
-              Write or paste your essay below for AI analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Start writing your essay here..."
-              value={essay}
-              onChange={(e) => setEssay(e.target.value)}
-              className="min-h-[400px] resize-none"
-            />
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {essay.length} characters, ~
-                {Math.ceil(essay.trim().split(/\s+/).length)} words
-              </p>
-              <Button
-                onClick={analyzessay}
-                disabled={isAnalyzing || !essay.trim()}
-                variant="hero"
-                className="min-w-[140px]"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Brain className="mr-2 h-4 w-4" />
-                    Analyze Essay
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Feedback Panel */}
+        {/* Left Column */}
         <div className="space-y-6">
-          {feedback ? (
-            <>
-              {/* Overall Score */}
+          {/* Your Essay */}
+          <Card className="bg-gradient-card border-0 shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Your Essay
+              </CardTitle>
+              <CardDescription>
+                Write or paste your essay below for AI analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                placeholder="Start writing your essay here..."
+                value={essay}
+                onChange={(e) => setEssay(e.target.value)}
+                className="min-h-[400px] resize-none"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {essay.length} characters, ~
+                  {Math.ceil(essay.trim().split(/\s+/).length)} words
+                </p>
+                <Button
+                  onClick={analyzessay}
+                  disabled={isAnalyzing || !essay.trim()}
+                  variant="hero"
+                  className="min-w-[140px]"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="mr-2 h-4 w-4" />
+                      Analyze Essay
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Enhanced Version - Below Your Essay */}
+          {feedback && feedback.enhancedVersion && (
+            <Card className="bg-gradient-card border-0 shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Enhanced Version
+                </CardTitle>
+                <CardDescription>
+                  AI-improved version of your essay
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  value={feedback.enhancedVersion}
+                  readOnly
+                  className="min-h-[400px] resize-none bg-muted/50"
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {feedback.enhancedVersion.length} characters, ~
+                    {Math.ceil(
+                      feedback.enhancedVersion.trim().split(/\s+/).length
+                    )}{" "}
+                    words
+                  </p>
+                  <Button
+                    onClick={() => copyToClipboard(feedback.enhancedVersion)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Feedback Panel */}
+        {feedback ? (
+          <>
+            {/* Overall Score */}
+            {/* Overall Score */}
+            <div className="space-y-6">
               <Card className="bg-gradient-card border-0 shadow-card">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -403,22 +467,22 @@ Note:
                   ))}
                 </CardContent>
               </Card>
-            </>
-          ) : (
-            <Card className="bg-gradient-card border-0 shadow-card">
-              <CardContent className="p-8 text-center">
-                <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Brain className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">Ready to Analyze</h3>
-                <p className="text-muted-foreground">
-                  Enter your essay text and click "Analyze Essay" to get
-                  detailed AI-powered feedback on grammar, style, and structure.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            </div>
+          </>
+        ) : (
+          <Card className="bg-gradient-card border-0 shadow-card">
+            <CardContent className="p-8 text-center">
+              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Brain className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-medium mb-2">Ready to Analyze</h3>
+              <p className="text-muted-foreground">
+                Enter your essay text and click "Analyze Essay" to get detailed
+                AI-powered feedback on grammar, style, and structure.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
