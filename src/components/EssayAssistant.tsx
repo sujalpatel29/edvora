@@ -25,31 +25,31 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 //function for parsing JSON lines
-function parseJsonLines(data: string): {
-  strengths: string[];
-  improvements: string[];
-  scoreLine: string; // keep raw line 1 as string
-  suggestionLine: string; // keep raw line 2 as string
-} {
-  // Split and drop blank lines
-  const lines = stripCodeFences(data)
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+// function parseJsonLines(data: string): {
+//   strengths: string[];
+//   improvements: string[];
+//   scoreLine: string; // keep raw line 1 as string
+//   suggestionLine: string; // keep raw line 2 as string
+// } {
+//   // Split and drop blank lines
+//   const lines = stripCodeFences(data)
+//     .split(/\r?\n/)
+//     .map((l) => l.trim())
+//     .filter(Boolean);
 
-  const scoreArr = lines[0] ? parseLine(lines[0]) : [];
-  const suggestionArr = lines[1] ? parseLine(lines[1]) : [];
-  const strengths = lines[2] ? parseLine(lines[2]) : [];
-  const improvements = lines[3] ? parseLine(lines[3]) : [];
+//   const scoreArr = lines[0] ? parseLine(lines[0]) : [];
+//   const suggestionArr = lines[1] ? parseLine(lines[1]) : [];
+//   const strengths = lines[2] ? parseLine(lines[2]) : [];
+//   const improvements = lines[3] ? parseLine(lines[3]) : [];
 
-  return {
-    // Keep raw line 1/2 (after cleanup) to parse more flexibly below
-    scoreLine: scoreArr[0] ?? "",
-    suggestionLine: suggestionArr[0] ?? "",
-    strengths,
-    improvements,
-  };
-}
+//   return {
+//     // Keep raw line 1/2 (after cleanup) to parse more flexibly below
+//     scoreLine: scoreArr[0] ?? "",
+//     suggestionLine: suggestionArr[0] ?? "",
+//     strengths,
+//     improvements,
+//   };
+// }
 
 function stripCodeFences(t: string) {
   return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();

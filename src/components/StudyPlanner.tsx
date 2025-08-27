@@ -9,25 +9,25 @@ import { Calendar, Upload, Clock, Target, BookOpen} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateText } from "../integrations/gemini/generate";
 
-function parseJsonLines(data: string): {
-  totalHours: string; // keep raw line 1 as string
-  daysNeeded: string; // keep raw line 2 as string
-} {
-  // Split and drop blank lines
-  const lines = stripCodeFences(data)
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+// function parseJsonLines(data: string): {
+//   totalHours: string; // keep raw line 1 as string
+//   daysNeeded: string; // keep raw line 2 as string
+// } {
+//   // Split and drop blank lines
+//   const lines = stripCodeFences(data)
+//     .split(/\r?\n/)
+//     .map((l) => l.trim())
+//     .filter(Boolean);
 
-  const totalHoursArr = lines[0] ? parseLine(lines[0]) : [];
-  const daysNeededArr = lines[1] ? parseLine(lines[1]) : [];
+//   const totalHoursArr = lines[0] ? parseLine(lines[0]) : [];
+//   const daysNeededArr = lines[1] ? parseLine(lines[1]) : [];
 
-  return {
-    // Keep raw line 1/2 (after cleanup) to parse more flexibly below
-    totalHours: totalHoursArr[0] ?? "",
-    daysNeeded: daysNeededArr[0] ?? "",
-  };
-}
+//   return {
+//     // Keep raw line 1/2 (after cleanup) to parse more flexibly below
+//     totalHours: totalHoursArr[0] ?? "",
+//     daysNeeded: daysNeededArr[0] ?? "",
+//   };
+// }
 
 function stripCodeFences(t: string) {
   return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();
@@ -48,7 +48,6 @@ function parseLine(line: string): string[] {
     const parsed = JSON.parse(clean);
     return toStringArray(parsed);
   } catch {
-    // Not valid JSON – try to extract numbers or return whole line
     return [clean];
   }
 }
@@ -73,44 +72,10 @@ const StudyPlanner = () => {
   const [syllabusText, setSyllabusText] = useState("");
   const [studyHours, setStudyHours] = useState("2");
   const [targetDate, setTargetDate] = useState("");
-  // const [startDate, setStartDate] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [schedule, setSchedule] = useState<StudySchedule | null>(null);
-  // const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const file = event.target.files?.[0];
-  //   if (file && file.type === "application/pdf") {
-  //     // Simulate PDF text extraction
-  //     toast({
-  //       title: "PDF uploaded successfully",
-  //       description: "Extracting text from your syllabus...",
-  //     });
-  //     try {
-  //           const dataBuffer = Buffer.from(await file.arrayBuffer());
-  //           // const data = await pdfParse(dataBuffer);
-  //           // console.log("Extracted text:", data.text);
-  //         } catch (error) {
-  //           console.error("Failed to extract text from PDF:", error);
-  //         }
-      
-  //     setTimeout(() => {
-  //       setSyllabusText("Introduction to Computer Science\n\n1. Programming Fundamentals\n   - Variables and Data Types\n   - Control Structures\n   - Functions and Methods\n\n2. Data Structures\n   - Arrays and Lists\n   - Stacks and Queues\n   - Trees and Graphs\n\n3. Algorithms\n   - Sorting Algorithms\n   - Search Algorithms\n   - Algorithm Complexity\n\n4. Object-Oriented Programming\n   - Classes and Objects\n   - Inheritance\n   - Polymorphism\n\n5. Web Development\n   - HTML/CSS\n   - JavaScript\n   - Frameworks");
-        
-  //       toast({
-  //         title: "Text extracted successfully",
-  //         description: "Your syllabus content is ready for schedule generation.",
-  //       });
-  //     }, 1500);
-  //   } else {
-  //     toast({
-  //       title: "Invalid file type",
-  //       description: "Please upload a PDF file.",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
 
   const generateSchedule = async () => {
     if (!syllabusText.trim()) {
@@ -132,10 +97,6 @@ const StudyPlanner = () => {
     }
 
     setIsGenerating(true);
-
-    console.log("holahola",syllabusText);
-    console.log(studyHours);
-    console.log(targetDate);
 
     try {
           // 🔑 CHANGE 3: Modified prompt to include enhanced version
@@ -220,14 +181,10 @@ const StudyPlanner = () => {
         variant: "destructive",
       });
     } finally {
-      // setIsAnalyzing(false);
-      console.log("hello");
+      setIsGenerating(false);
     }
   };
-  console.log("hello",syllabusText);
-  console.log();
-  console.log(studyHours);
-  console.log(targetDate);
+  
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -273,30 +230,6 @@ const StudyPlanner = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".pdf"
-                  className="hidden"
-                />
-                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">
-                  Drop your syllabus PDF here or click to browse
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Choose PDF File
-                </Button>
-              </div>
-              
-              <div className="text-center text-sm text-muted-foreground">
-                or
-              </div> */}
-              
               <Textarea
                 placeholder="Enter your syllabus content here..."
                 value={syllabusText}
@@ -386,13 +319,6 @@ const StudyPlanner = () => {
                       <p className="text-sm text-muted-foreground">Days Needed</p>
                     </div>
                   </div>
-                  {/* <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Progress</span>
-                      <span>0% Complete</span>
-                    </div>
-                    <Progress value={0} className="h-2" />
-                  </div> */}
                 </CardContent>
               </Card>
 
@@ -427,16 +353,6 @@ const StudyPlanner = () => {
                           <p className="text-xs text-muted-foreground">estimated</p>
                         </div>
                       </div>
-                      {/* <div className="flex items-center justify-between">
-                        <Progress value={topic.completed ? 100 : 0} className="flex-1 mr-3 h-2" />
-                        <Button
-                          variant={topic.completed ? "success" : "outline"}
-                          size="sm"
-                          disabled={topic.completed}
-                        >
-                          {topic.completed ? "Completed" : "Start"}
-                        </Button>
-                      </div> */}
                     </div>
                   ))}
                 </CardContent>

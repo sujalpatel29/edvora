@@ -6,6 +6,31 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Brain, HelpCircle, RotateCcw, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateText } from "../integrations/gemini/generate";
+
+
+function stripCodeFences(t: string) {
+  return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();
+}
+
+function toStringArray(value: unknown): string[] {
+  // Normalize any value to string[]
+  if (Array.isArray(value)) return value.map((v) => String(v).trim());
+  if (value === null || value === undefined) return [];
+  return [String(value).trim()];
+}
+
+function parseLine(line: string): string[] {
+  const clean = stripCodeFences(line).trim();
+  // Try JSON first
+  try {
+    const parsed = JSON.parse(clean);
+    return toStringArray(parsed);
+  } catch {
+    // Not valid JSON – try to extract numbers or return whole line
+    return [clean];
+  }
+}
 
 interface Question {
   id: number;
@@ -26,6 +51,7 @@ const LearningHub = () => {
   const [searchTopic, setSearchTopic] = useState("");
   const [currentExplanation, setCurrentExplanation] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [currentQuiz, setCurrentQuiz] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -34,6 +60,7 @@ const LearningHub = () => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [currentCard, setCurrentCard] = useState(0);
   const [showBack, setShowBack] = useState(false);
+  const [explanationDesc, setexplanationDesc] = useState<string>("");
   const { toast } = useToast();
 
   const generateExplanation = async () => {
@@ -47,56 +74,60 @@ const LearningHub = () => {
     }
 
     setIsGenerating(true);
+
+    try {
+              // 🔑 CHANGE 3: Modified prompt to include enhanced version
+              const explanation =
+                await generateText(`You are an expert educational AI agent. Give a comprehensive explanation for "${searchTopic}" following this structure:
+
+Response Format:
+Definition: Clear explanation of what it is
+Key Points: 3-5 main concepts or components
+Examples: 2-3 detailed real-world examples with explanations
+Applications: Where/how it's used in practice
+Quick Clarification: Address one common misconception
+
+Guidelines:
+
+Use simple, clear language
+Make examples specific and detailed
+Build from basic to advanced concepts
+Keep explanations thorough but accessible
+Encourage further questions
+
+Example Input: "Photosynthesis"
+Your Output: Follow the 5-section format above, providing detailed examples like how plants convert sunlight to energy, applications in agriculture, and clarifying that plants also need oxygen.
+
+Note: Give response in same simple text instead of using h1, h2 tags.`);
+
+        console.log("Gemini Response :", explanation);
+        
+        setCurrentExplanation(explanation);
+        setexplanationDesc(explanation);
     
-    setTimeout(() => {
-      const mockExplanation = `# ${searchTopic}
-
-## Introduction
-${searchTopic} is a fundamental concept that plays a crucial role in computer science and software development. Understanding this topic is essential for building robust and efficient applications.
-
-## Key Concepts
-
-### 1. Basic Principles
-The core principles of ${searchTopic} involve understanding how data flows through systems and how different components interact with each other. This forms the foundation for more advanced concepts.
-
-### 2. Practical Applications
-In real-world scenarios, ${searchTopic} is used in:
-- Software architecture design
-- System optimization
-- Problem-solving approaches
-- Performance improvements
-
-### 3. Best Practices
-When working with ${searchTopic}, consider these best practices:
-- Start with simple implementations
-- Focus on clarity and readability
-- Test thoroughly
-- Optimize when necessary
-
-## Examples
-Here's a simple example to illustrate the concept:
-
-\`\`\`javascript
-// Example implementation
-function example() {
-  console.log("This demonstrates ${searchTopic}");
-}
-\`\`\`
-
-## Summary
-${searchTopic} is an important concept that requires practice and understanding. By following the principles outlined above, you can effectively apply this knowledge in your projects.`;
-
-      setCurrentExplanation(mockExplanation);
-      setIsGenerating(false);
-      
-      toast({
-        title: "Explanation generated!",
-        description: "Your topic explanation is ready.",
-      });
-    }, 2000);
+    
+        // Simulate AI processing
+        
+          
+          setIsGenerating(false);
+    
+          toast({
+            title: "Schedule generated successfully!",
+            description: "Your personalized study plan is ready.",
+          });
+        
+        } catch (err) {
+          toast({
+            title: "Error analyzing essay",
+            description: (err as Error).message,
+            variant: "destructive",
+          });
+        } finally {
+          setIsGenerating(false);
+        }
   };
 
-  const generateQuiz = () => {
+  const generateQuiz = async () => {
     if (!searchTopic.trim()) {
       toast({
         title: "Please enter a topic",
@@ -106,46 +137,59 @@ ${searchTopic} is an important concept that requires practice and understanding.
       return;
     }
 
-    const mockQuestions: Question[] = [
-      {
-        id: 1,
-        question: `What is the primary purpose of ${searchTopic}?`,
-        options: [
-          "To improve system performance",
-          "To enhance code readability",
-          "To solve complex problems",
-          "All of the above"
-        ],
-        correct: 3,
-        explanation: `${searchTopic} serves multiple purposes including improving performance, enhancing readability, and solving complex problems.`
-      },
-      {
-        id: 2,
-        question: `Which of the following is a key principle of ${searchTopic}?`,
-        options: [
-          "Simplicity",
-          "Efficiency",
-          "Modularity",
-          "All of the above"
-        ],
-        correct: 3,
-        explanation: "All these principles are fundamental to understanding and implementing the concept effectively."
-      },
-      {
-        id: 3,
-        question: `When should you apply ${searchTopic} concepts?`,
-        options: [
-          "Only in large projects",
-          "Only when performance is critical",
-          "In most software development scenarios",
-          "Never"
-        ],
-        correct: 2,
-        explanation: "These concepts are broadly applicable and should be considered in most development scenarios."
-      }
-    ];
+    setIsGeneratingQuiz(true);
 
-    setCurrentQuiz(mockQuestions);
+    try {
+              const mcqs =
+                await generateText(`You are an AI quiz generator. Analyze the following topic details and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+
+Provide your analysis in this exact JSON structure:
+
+{
+"que": [
+{
+"question": "<Question>",
+"options": ["<option1>", "<option2>", "<option3>", "<option4>"],
+"correct": <correct answer index from 0 to 3>,
+"explanation": "<1 or 2 line explanation of correct answer>"
+}
+]
+}
+
+Requirements:
+-Generate 3 to 7 questions total
+-Make questions relevant to the topic
+-Ensure options are plausible but only one is correct
+-Keep explanations concise (1-2 lines)
+-Return in text which is in raw JSON only, no formatting
+
+Topic description:
+"${explanationDesc}"`);
+        console.log("Gemini Response :", mcqs);
+    
+          let parsed;
+          try {
+            parsed = JSON.parse(stripCodeFences(mcqs));
+          } catch (e) {
+            console.error("Parse error", e, mcqs);
+            toast({
+              title: "AI response invalid",
+              description: "Could not parse AI response.",
+              variant: "destructive",
+            });
+            setIsGeneratingQuiz(false);
+            return;
+          }
+        // Simulate AI processing
+        
+          const finalQuiz: Question[] = parsed.que.map((q: any) => ({
+  id: q.id,
+  question: q.question,
+  options: q.options,
+  correct: q.correct,
+  explanation: q.explanation,
+}));
+    setCurrentQuiz(finalQuiz);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
     setShowAnswer(false);
@@ -153,8 +197,19 @@ ${searchTopic} is an important concept that requires practice and understanding.
     
     toast({
       title: "Quiz generated!",
-      description: `${mockQuestions.length} questions ready for ${searchTopic}.`,
+      description: `${finalQuiz.length} questions ready for ${searchTopic}.`,
     });
+  
+        
+        } catch (err) {
+          toast({
+            title: "Error generating quiz",
+            description: (err as Error).message,
+            variant: "destructive",
+          });
+        } finally {
+          setIsGeneratingQuiz(false);
+        }
   };
 
   const generateFlashcards = () => {
@@ -352,7 +407,17 @@ ${searchTopic} is an important concept that requires practice and understanding.
               </div>
               {currentQuiz.length === 0 && (
                 <Button onClick={generateQuiz} variant="secondary">
+                  
+                  {isGeneratingQuiz ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
                   Generate Quiz
+                </>
+              )}
                 </Button>
               )}
             </CardHeader>

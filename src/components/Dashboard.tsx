@@ -127,11 +127,11 @@ const Dashboard = ({ onSectionChange }: DashboardProps) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
+                  {/* <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Progress</span>
                     <span className="font-medium">{feature.progress}%</span>
                   </div>
-                  <Progress value={feature.progress} className="h-2" />
+                  <Progress value={feature.progress} className="h-2" /> */}
                   <Button 
                     variant="ghost" 
                     className="w-full justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-smooth"
@@ -146,7 +146,7 @@ const Dashboard = ({ onSectionChange }: DashboardProps) => {
       </div>
 
       {/* Quick Actions */}
-      <Card className="bg-gradient-card border-0 shadow-card">
+      {/* <Card className="bg-gradient-card border-0 shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
@@ -192,7 +192,7 @@ const Dashboard = ({ onSectionChange }: DashboardProps) => {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };
