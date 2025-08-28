@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Brain, HelpCircle, RotateCcw, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateText } from "../integrations/gemini/generate";
-
 
 function stripCodeFences(t: string) {
   return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();
@@ -38,13 +43,13 @@ interface Question {
   options: string[];
   correct: number;
   explanation: string;
-}  
+}
 
 interface Flashcard {
   id: number;
   front: string;
   back: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: "Easy" | "Medium" | "Hard";
 }
 
 const LearningHub = () => {
@@ -52,6 +57,7 @@ const LearningHub = () => {
   const [currentExplanation, setCurrentExplanation] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [isCardGenerating, setIsCardGenerating] = useState(false);
   const [currentQuiz, setCurrentQuiz] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -76,9 +82,9 @@ const LearningHub = () => {
     setIsGenerating(true);
 
     try {
-              // 🔑 CHANGE 3: Modified prompt to include enhanced version
-              const explanation =
-                await generateText(`You are an expert educational AI agent. Give a comprehensive explanation for "${searchTopic}" following this structure:
+      // 🔑 CHANGE 3: Modified prompt to include enhanced version
+      const explanation =
+        await generateText(`You are an expert educational AI agent. Give a comprehensive explanation for "${searchTopic}" following this structure:
 
 Response Format:
 Definition: Clear explanation of what it is
@@ -100,31 +106,28 @@ Your Output: Follow the 5-section format above, providing detailed examples like
 
 Note: Give response in same simple text instead of using h1, h2 tags.`);
 
-        console.log("Gemini Response :", explanation);
-        
-        setCurrentExplanation(explanation);
-        setexplanationDesc(explanation);
-    
-    
-        // Simulate AI processing
-        
-          
-          setIsGenerating(false);
-    
-          toast({
-            title: "Schedule generated successfully!",
-            description: "Your personalized study plan is ready.",
-          });
-        
-        } catch (err) {
-          toast({
-            title: "Error analyzing essay",
-            description: (err as Error).message,
-            variant: "destructive",
-          });
-        } finally {
-          setIsGenerating(false);
-        }
+      console.log("Gemini Response :", explanation);
+
+      setCurrentExplanation(explanation);
+      setexplanationDesc(explanation);
+
+      // Simulate AI processing
+
+      setIsGenerating(false);
+
+      toast({
+        title: "Schedule generated successfully!",
+        description: "Your personalized study plan is ready.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error analyzing essay",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const generateQuiz = async () => {
@@ -140,8 +143,8 @@ Note: Give response in same simple text instead of using h1, h2 tags.`);
     setIsGeneratingQuiz(true);
 
     try {
-              const mcqs =
-                await generateText(`You are an AI quiz generator. Analyze the following topic details and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+      const mcqs =
+        await generateText(`You are an AI quiz generator. Analyze the following topic details and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
 
 Provide your analysis in this exact JSON structure:
 
@@ -165,54 +168,53 @@ Requirements:
 
 Topic description:
 "${explanationDesc}"`);
-        console.log("Gemini Response :", mcqs);
-    
-          let parsed;
-          try {
-            parsed = JSON.parse(stripCodeFences(mcqs));
-          } catch (e) {
-            console.error("Parse error", e, mcqs);
-            toast({
-              title: "AI response invalid",
-              description: "Could not parse AI response.",
-              variant: "destructive",
-            });
-            setIsGeneratingQuiz(false);
-            return;
-          }
-        // Simulate AI processing
-        
-          const finalQuiz: Question[] = parsed.que.map((q: any) => ({
-  id: q.id,
-  question: q.question,
-  options: q.options,
-  correct: q.correct,
-  explanation: q.explanation,
-}));
-    setCurrentQuiz(finalQuiz);
-    setCurrentQuestion(0);
-    setSelectedAnswer(null);
-    setShowAnswer(false);
-    setScore(0);
-    
-    toast({
-      title: "Quiz generated!",
-      description: `${finalQuiz.length} questions ready for ${searchTopic}.`,
-    });
-  
-        
-        } catch (err) {
-          toast({
-            title: "Error generating quiz",
-            description: (err as Error).message,
-            variant: "destructive",
-          });
-        } finally {
-          setIsGeneratingQuiz(false);
-        }
+      console.log("Gemini Response :", mcqs);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(stripCodeFences(mcqs));
+      } catch (e) {
+        console.error("Parse error", e, mcqs);
+        toast({
+          title: "AI response invalid",
+          description: "Could not parse AI response.",
+          variant: "destructive",
+        });
+        setIsGeneratingQuiz(false);
+        return;
+      }
+      // Simulate AI processing
+
+      const finalQuiz: Question[] = parsed.que.map((q: any) => ({
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        correct: q.correct,
+        explanation: q.explanation,
+      }));
+      setCurrentQuiz(finalQuiz);
+      setCurrentQuestion(0);
+      setSelectedAnswer(null);
+      setShowAnswer(false);
+      setScore(0);
+      setIsGeneratingQuiz(false);
+
+      toast({
+        title: "Quiz generated!",
+        description: `${finalQuiz.length} questions ready for ${searchTopic}.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error generating quiz",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
   };
 
-  const generateFlashcards = () => {
+  const generateFlashcards = async () => {
     if (!searchTopic.trim()) {
       toast({
         title: "Please enter a topic",
@@ -222,37 +224,103 @@ Topic description:
       return;
     }
 
+    setIsCardGenerating(true);
+
+    try {
+      const flashCards =
+        await generateText(`You are an AI Flashcards generator. Analyze the following topic details and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+
+Provide your analysis in this exact JSON structure:
+
+[
+{
+"front": "<front side of flashcard>",
+"back": "<Back side of flashcard>",
+"difficulty": "Easy|Medium|Hard",
+}
+]
+
+
+Requirements:
+-Generate 3 to 7 Flashcards total
+-Make Flashcards relevant to the topic
+-Return in text which is in raw JSON only, no formatting
+
+Topic description:
+"${explanationDesc}"`);
+      console.log("Gemini Response :", flashCards);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(stripCodeFences(flashCards));
+      } catch (e) {
+        console.error("Parse error", e, flashCards);
+        toast({
+          title: "AI response invalid",
+          description: "Could not parse AI response.",
+          variant: "destructive",
+        });
+        setIsCardGenerating(false);
+        return;
+      }
+      // Simulate AI processing
+      const finalCards: Flashcard[] = [{
+        id: parsed.id,
+        front: parsed.front,
+        back: parsed.back,
+        difficulty: parsed.difficulty,
+      }];
+
+      setFlashcards(finalCards);
+      setCurrentCard(0);
+      setShowBack(false);
+      setIsCardGenerating(false);
+
+      toast({
+        title: "Quiz generated!",
+        description: `${finalCards.length} questions ready for ${searchTopic}.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error generating quiz",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCardGenerating(false);
+    }
+
     const mockCards: Flashcard[] = [
       {
         id: 1,
         front: `What is ${searchTopic}?`,
         back: `${searchTopic} is a fundamental concept in computer science that helps solve complex problems through structured approaches.`,
-        difficulty: 'Easy'   
+        difficulty: "Easy",
       },
       {
         id: 2,
         front: `Key benefits of ${searchTopic}`,
         back: "Improved performance, better code organization, enhanced maintainability, and easier debugging.",
-        difficulty: 'Medium'
+        difficulty: "Medium",
       },
       {
         id: 3,
         front: `Advanced applications of ${searchTopic}`,
         back: "Used in system architecture, algorithm optimization, design patterns, and large-scale software development.",
-        difficulty: 'Hard'
+        difficulty: "Hard",
       },
       {
         id: 4,
         front: `Best practices for ${searchTopic}`,
         back: "Start simple, focus on clarity, test thoroughly, document well, and optimize when necessary.",
-        difficulty: 'Medium'
-      }
+        difficulty: "Medium",
+      },
     ];
 
     setFlashcards(mockCards);
     setCurrentCard(0);
     setShowBack(false);
-    
+
     toast({
       title: "Flashcards generated!",
       description: `${mockCards.length} flashcards ready for ${searchTopic}.`,
@@ -295,10 +363,14 @@ Topic description:
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy': return 'success';
-      case 'Medium': return 'warning';
-      case 'Hard': return 'destructive';
-      default: return 'secondary';
+      case "Easy":
+        return "success";
+      case "Medium":
+        return "warning";
+      case "Hard":
+        return "destructive";
+      default:
+        return "secondary";
     }
   };
 
@@ -310,7 +382,9 @@ Topic description:
         </div>
         <div>
           <h1 className="text-2xl font-bold">Interactive Learning Hub</h1>
-          <p className="text-muted-foreground">Explore topics with AI-powered explanations, quizzes, and flashcards</p>
+          <p className="text-muted-foreground">
+            Explore topics with AI-powered explanations, quizzes, and flashcards
+          </p>
         </div>
       </div>
 
@@ -324,7 +398,7 @@ Topic description:
               onChange={(e) => setSearchTopic(e.target.value)}
               className="flex-1"
             />
-            <Button 
+            <Button
               variant="hero"
               onClick={generateExplanation}
               disabled={isGenerating}
@@ -385,7 +459,8 @@ Topic description:
                   <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Ready to Learn</h3>
                   <p className="text-muted-foreground">
-                    Enter a topic above and click "Learn Topic" to get an AI-generated explanation.
+                    Enter a topic above and click "Learn Topic" to get an
+                    AI-generated explanation.
                   </p>
                 </div>
               )}
@@ -407,17 +482,14 @@ Topic description:
               </div>
               {currentQuiz.length === 0 && (
                 <Button onClick={generateQuiz} variant="secondary">
-                  
                   {isGeneratingQuiz ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  Generate Quiz
-                </>
-              )}
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>Generate Quiz</>
+                  )}
                 </Button>
               )}
             </CardHeader>
@@ -432,40 +504,51 @@ Topic description:
                       Score: {score}/{currentQuiz.length}
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">
                       {currentQuiz[currentQuestion].question}
                     </h3>
-                    
+
                     <div className="grid gap-2">
-                      {currentQuiz[currentQuestion].options.map((option, index) => (
-                        <Button
-                          key={index}
-                          variant={
-                            showAnswer
-                              ? index === currentQuiz[currentQuestion].correct
-                                ? "success"
+                      {currentQuiz[currentQuestion].options.map(
+                        (option, index) => (
+                          <Button
+                            key={index}
+                            variant={
+                              showAnswer
+                                ? index === currentQuiz[currentQuestion].correct
+                                  ? "success"
+                                  : selectedAnswer === index
+                                  ? "destructive"
+                                  : "outline"
                                 : selectedAnswer === index
-                                ? "destructive"
+                                ? "default"
                                 : "outline"
-                              : selectedAnswer === index
-                              ? "default"
-                              : "outline"
-                          }
-                          className="justify-start h-auto p-4 text-left"
-                          onClick={() => handleAnswerSelect(index)}
-                          disabled={showAnswer}
-                        >
-                          <span className="mr-3">
-                            {showAnswer && index === currentQuiz[currentQuestion].correct && <Check className="h-4 w-4" />}
-                            {showAnswer && selectedAnswer === index && index !== currentQuiz[currentQuestion].correct && <X className="h-4 w-4" />}
-                          </span>
-                          {option}
-                        </Button>
-                      ))}
+                            }
+                            className="justify-start h-auto p-4 text-left"
+                            onClick={() => handleAnswerSelect(index)}
+                            disabled={showAnswer}
+                          >
+                            <span className="mr-3">
+                              {showAnswer &&
+                                index ===
+                                  currentQuiz[currentQuestion].correct && (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              {showAnswer &&
+                                selectedAnswer === index &&
+                                index !==
+                                  currentQuiz[currentQuestion].correct && (
+                                  <X className="h-4 w-4" />
+                                )}
+                            </span>
+                            {option}
+                          </Button>
+                        )
+                      )}
                     </div>
-                    
+
                     {showAnswer && (
                       <div className="bg-accent/50 rounded-lg p-4">
                         <h4 className="font-medium mb-2">Explanation:</h4>
@@ -474,21 +557,25 @@ Topic description:
                         </p>
                       </div>
                     )}
-                    
+
                     {showAnswer && currentQuestion < currentQuiz.length - 1 && (
                       <Button onClick={nextQuestion} className="w-full">
                         Next Question
                       </Button>
                     )}
-                    
-                    {showAnswer && currentQuestion === currentQuiz.length - 1 && (
-                      <div className="text-center">
-                        <h3 className="text-lg font-medium mb-2">Quiz Complete!</h3>
-                        <p className="text-muted-foreground">
-                          Final Score: {score}/{currentQuiz.length} ({Math.round((score/currentQuiz.length) * 100)}%)
-                        </p>
-                      </div>
-                    )}
+
+                    {showAnswer &&
+                      currentQuestion === currentQuiz.length - 1 && (
+                        <div className="text-center">
+                          <h3 className="text-lg font-medium mb-2">
+                            Quiz Complete!
+                          </h3>
+                          <p className="text-muted-foreground">
+                            Final Score: {score}/{currentQuiz.length} (
+                            {Math.round((score / currentQuiz.length) * 100)}%)
+                          </p>
+                        </div>
+                      )}
                   </div>
                 </div>
               ) : (
@@ -496,7 +583,8 @@ Topic description:
                   <HelpCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Ready to Quiz</h3>
                   <p className="text-muted-foreground">
-                    Enter a topic and click "Generate Quiz" to test your knowledge.
+                    Enter a topic and click "Generate Quiz" to test your
+                    knowledge.
                   </p>
                 </div>
               )}
@@ -518,7 +606,14 @@ Topic description:
               </div>
               {flashcards.length === 0 && (
                 <Button onClick={generateFlashcards} variant="success">
-                  Generate Flashcards
+                  {isCardGenerating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>Generate Flashcards</>
+                  )}
                 </Button>
               )}
             </CardHeader>
@@ -529,42 +624,45 @@ Topic description:
                     <Badge variant="outline">
                       Card {currentCard + 1} of {flashcards.length}
                     </Badge>
-                    <Badge variant={getDifficultyColor(flashcards[currentCard].difficulty)}>
+                    <Badge
+                      variant={getDifficultyColor(
+                        flashcards[currentCard].difficulty
+                      )}
+                    >
                       {flashcards[currentCard].difficulty}
                     </Badge>
                   </div>
-                  
-                  <div 
+
+                  <div
                     className="bg-background border-2 border-dashed border-primary/20 rounded-xl p-8 min-h-[200px] flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors"
                     onClick={flipCard}
                   >
                     <div className="text-center">
                       <p className="text-lg font-medium mb-4">
-                        {showBack ? flashcards[currentCard].back : flashcards[currentCard].front}
+                        {showBack
+                          ? flashcards[currentCard].back
+                          : flashcards[currentCard].front}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Click to {showBack ? "show question" : "reveal answer"}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-between">
-                    <Button 
-                      onClick={prevCard} 
+                    <Button
+                      onClick={prevCard}
                       disabled={currentCard === 0}
                       variant="outline"
                     >
                       Previous
                     </Button>
-                    <Button 
-                      onClick={flipCard}
-                      variant="ghost"
-                    >
+                    <Button onClick={flipCard} variant="ghost">
                       <RotateCcw className="h-4 w-4 mr-2" />
                       Flip Card
                     </Button>
-                    <Button 
-                      onClick={nextCard} 
+                    <Button
+                      onClick={nextCard}
                       disabled={currentCard === flashcards.length - 1}
                       variant="outline"
                     >
@@ -577,7 +675,8 @@ Topic description:
                   <RotateCcw className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Ready to Study</h3>
                   <p className="text-muted-foreground">
-                    Enter a topic and click "Generate Flashcards" to create study cards.
+                    Enter a topic and click "Generate Flashcards" to create
+                    study cards.
                   </p>
                 </div>
               )}
