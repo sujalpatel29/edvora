@@ -20,18 +20,16 @@ const Layout = ({ children, activeSection = "dashboard", onSectionChange }: Layo
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: BookOpen },
-    { id: "essay", label: "Essay Assistant", icon: Brain },
+    { id: "essay", label: "Content Analyzer", icon: Brain },
     { id: "schedule", label: "Study Planner", icon: Calendar },
     { id: "topics", label: "Learning Hub", icon: BookOpen },
   ];
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {

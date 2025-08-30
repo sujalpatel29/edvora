@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Brain, Calendar, Star } from "lucide-react";
 
 interface AuthModalProps {
   open: boolean;
@@ -46,7 +45,6 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
         description: "Please check your email to verify your account before signing in.",
       });
       
-      // Clear form
       setEmail("");
       setPassword("");
       setName("");
@@ -75,7 +73,6 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
       if (error) {
         console.error("Sign in error:", error);
         
-        // Provide specific error messages
         if (error.message.includes("Email not confirmed")) {
           throw new Error("Please check your email and confirm your account before signing in.");
         } else if (error.message.includes("Invalid login credentials")) {
@@ -103,62 +100,7 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
-          {/* Left Side - Branding */}
-          <div className="bg-gradient-to-br from-primary/10 to-accent/10 p-8 flex flex-col justify-center">
-            <div className="text-center space-y-6">
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  Edvora
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                  Your intelligent study companion
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-left">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Brain className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">AI Essay Review</h3>
-                    <p className="text-sm text-muted-foreground">Get instant feedback on your writing</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 text-left">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Calendar className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Smart Study Plans</h3>
-                    <p className="text-sm text-muted-foreground">Personalized schedules for success</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 text-left">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Interactive Learning</h3>
-                    <p className="text-sm text-muted-foreground">Quizzes, flashcards, and more</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-center gap-1 text-amber-500">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
-                ))}
-                <span className="ml-2 text-sm font-medium">Trusted by 10,000+ students</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Side - Auth Forms */}
+      <DialogContent className="sm:max-w-1xl p-0 overflow-hidden">
           <div className="p-8 flex flex-col justify-center">
             <DialogHeader className="text-center mb-6">
               <DialogTitle className="text-2xl">Welcome to Edvora</DialogTitle>
@@ -262,7 +204,7 @@ const AuthModal = ({ open, onClose }: AuthModalProps) => {
               </TabsContent>
             </Tabs>
           </div>
-        </div>
+        
       </DialogContent>
     </Dialog>
   );

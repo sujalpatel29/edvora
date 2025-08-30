@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { generateText } from "../integrations/gemini/generate";
-//added for essay assistant
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,33 +23,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-//function for parsing JSON lines
-// function parseJsonLines(data: string): {
-//   strengths: string[];
-//   improvements: string[];
-//   scoreLine: string; // keep raw line 1 as string
-//   suggestionLine: string; // keep raw line 2 as string
-// } {
-//   // Split and drop blank lines
-//   const lines = stripCodeFences(data)
-//     .split(/\r?\n/)
-//     .map((l) => l.trim())
-//     .filter(Boolean);
-
-//   const scoreArr = lines[0] ? parseLine(lines[0]) : [];
-//   const suggestionArr = lines[1] ? parseLine(lines[1]) : [];
-//   const strengths = lines[2] ? parseLine(lines[2]) : [];
-//   const improvements = lines[3] ? parseLine(lines[3]) : [];
-
-//   return {
-//     // Keep raw line 1/2 (after cleanup) to parse more flexibly below
-//     scoreLine: scoreArr[0] ?? "",
-//     suggestionLine: suggestionArr[0] ?? "",
-//     strengths,
-//     improvements,
-//   };
-// }
-
 function stripCodeFences(t: string) {
   return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();
 }
@@ -65,12 +37,10 @@ function toStringArray(value: unknown): string[] {
 function parseLine(line: string): string[] {
   const clean = stripCodeFences(line).trim();
 
-  // Try JSON first
   try {
     const parsed = JSON.parse(clean);
     return toStringArray(parsed);
   } catch {
-    // Not valid JSON – try to extract numbers or return whole line
     return [clean];
   }
 }
@@ -96,11 +66,10 @@ const EssayAssistant = () => {
       strengths: string[];
       improvements: string[];
     };
-    enhancedVersion: string; // 🔑 CHANGE 1: Added enhanced version to feedback state
+    enhancedVersion: string; 
   } | null>(null);
   const { toast } = useToast();
 
-  // 🔑 CHANGE 2: Added function to copy enhanced version to clipboard
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -121,7 +90,7 @@ const EssayAssistant = () => {
     if (!essay.trim()) {
       toast({
         title: "Please enter some text",
-        description: "Write or paste your essay to get AI-powered feedback.",
+        description: "Write or paste your content to get AI-powered feedback.",
         variant: "destructive",
       });
       return;
@@ -130,11 +99,10 @@ const EssayAssistant = () => {
     setIsAnalyzing(true);
 
     try {
-      // 🔑 CHANGE 3: Modified prompt to include enhanced version
       const analysisRaw =
-        await generateText(`You are an AI Essay Assistant. Analyze the following essay and provide feedback as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+        await generateText(`You are an AI Writing Assistant. Analyze the following written document(essay, report or any document) and provide feedback as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
 
-      Essay: ${essay}
+      Content: ${essay}
 
       Provide your analysis in this exact JSON structure:
 
@@ -149,7 +117,7 @@ const EssayAssistant = () => {
         "style": [
           { "text": "<issue>", "type": "clarity|flow|vocabulary", "suggestion": "<recommendation>" }
         ],
-        "enhancedVersion": "<improved version of the essay with better grammar, style, structure, and flow while maintaining the original meaning and voice>"
+        "enhancedVersion": "<improved version of the entered content with better grammar, style, structure, and flow while maintaining the original meaning and voice>"
       }
 
       Note:
@@ -165,7 +133,7 @@ const EssayAssistant = () => {
       ]
 
       For the enhancedVersion:
-      - Keep the original meaning and voice of the essay
+      - Keep the original meaning and voice of the content
       - Fix grammar and punctuation errors
       - Improve sentence structure and flow
       - Use more sophisticated vocabulary where appropriate
@@ -190,7 +158,6 @@ const EssayAssistant = () => {
         return;
       }
 
-      // 🔑 CHANGE 4: Added enhanced version to final feedback
       const finalFeedback = {
         grammar: parsed.grammar || [],
         style: parsed.style || [],
@@ -208,11 +175,11 @@ const EssayAssistant = () => {
 
       toast({
         title: "Analysis Complete!",
-        description: "Your essay has been analyzed. Check the feedback below.",
+        description: "Your content has been analyzed. Check the feedback below.",
       });
     } catch (err) {
       toast({
-        title: "Error analyzing essay",
+        title: "Error analyzing content",
         description: (err as Error).message,
         variant: "destructive",
       });
@@ -254,7 +221,7 @@ const EssayAssistant = () => {
           <Brain className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">AI Essay Assistant</h1>
+          <h1 className="text-2xl font-bold">AI Writing Assistant</h1>
           <p className="text-muted-foreground">
             Get intelligent feedback to improve your writing
           </p>
@@ -262,22 +229,20 @@ const EssayAssistant = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column */}
         <div className="space-y-6">
-          {/* Your Essay */}
           <Card className="bg-gradient-card border-0 shadow-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                Your Essay
+                Your Content
               </CardTitle>
               <CardDescription>
-                Write or paste your essay below for AI analysis
+                Write or paste your content below for AI analysis
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Textarea
-                placeholder="Start writing your essay here..."
+                placeholder="Start writing your content here..."
                 value={essay}
                 onChange={(e) => setEssay(e.target.value)}
                 className="min-h-[400px] resize-none"
@@ -301,7 +266,7 @@ const EssayAssistant = () => {
                   ) : (
                     <>
                       <Brain className="mr-2 h-4 w-4" />
-                      Analyze Essay
+                      Analyze
                     </>
                   )}
                 </Button>
@@ -309,7 +274,6 @@ const EssayAssistant = () => {
             </CardContent>
           </Card>
 
-          {/* Enhanced Version - Below Your Essay */}
           {feedback && feedback.enhancedVersion && (
             <Card className="bg-gradient-card border-0 shadow-card">
               <CardHeader>
@@ -318,7 +282,7 @@ const EssayAssistant = () => {
                   Enhanced Version
                 </CardTitle>
                 <CardDescription>
-                  AI-improved version of your essay
+                  AI-improved version of your content
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -352,7 +316,6 @@ const EssayAssistant = () => {
         {/* Right Column - Feedback Panel */}
         {feedback ? (
           <>
-            {/* Overall Score */}
             {/* Overall Score */}
             <div className="space-y-6">
               <Card className="bg-gradient-card border-0 shadow-card">
@@ -477,7 +440,7 @@ const EssayAssistant = () => {
               </div>
               <h3 className="text-lg font-medium mb-2">Ready to Analyze</h3>
               <p className="text-muted-foreground">
-                Enter your essay text and click "Analyze Essay" to get detailed
+                Enter your content text and click "Analyze" to get detailed
                 AI-powered feedback on grammar, style, and structure.
               </p>
             </CardContent>

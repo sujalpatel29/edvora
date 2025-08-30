@@ -19,7 +19,6 @@ function stripCodeFences(t: string) {
 }
 
 function toStringArray(value: unknown): string[] {
-  // Normalize any value to string[]
   if (Array.isArray(value)) return value.map((v) => String(v).trim());
   if (value === null || value === undefined) return [];
   return [String(value).trim()];
@@ -27,12 +26,10 @@ function toStringArray(value: unknown): string[] {
 
 function parseLine(line: string): string[] {
   const clean = stripCodeFences(line).trim();
-  // Try JSON first
   try {
     const parsed = JSON.parse(clean);
     return toStringArray(parsed);
   } catch {
-    // Not valid JSON – try to extract numbers or return whole line
     return [clean];
   }
 }
@@ -82,7 +79,6 @@ const LearningHub = () => {
     setIsGenerating(true);
 
     try {
-      // 🔑 CHANGE 3: Modified prompt to include enhanced version
       const explanation =
         await generateText(`You are an expert educational AI agent. Give a comprehensive explanation for "${searchTopic}" following this structure:
 
@@ -144,7 +140,7 @@ Note: Give response in same simple text instead of using h1, h2 tags.`);
 
     try {
       const mcqs =
-        await generateText(`You are an AI quiz generator. Analyze the following topic details and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+        await generateText(`You are an AI quiz generator. Analyze the following topic and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
 
 Provide your analysis in this exact JSON structure:
 
@@ -167,7 +163,7 @@ Requirements:
 -Return in text which is in raw JSON only, no formatting
 
 Topic description:
-"${explanationDesc}"`);
+"${searchTopic}"`);
       console.log("Gemini Response :", mcqs);
 
       let parsed;
@@ -183,7 +179,6 @@ Topic description:
         setIsGeneratingQuiz(false);
         return;
       }
-      // Simulate AI processing
 
       const finalQuiz: Question[] = parsed.que.map((q: any) => ({
         id: q.id,
@@ -228,7 +223,7 @@ Topic description:
 
     try {
       const flashCards =
-        await generateText(`You are an AI Flashcards generator. Analyze the following topic details and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
+        await generateText(`You are an AI Flashcards generator. Analyze the following topic and create a quiz as a JSON response. Do not format your response as code or use code blocks. Return only the raw JSON text without any markdown formatting or additional explanation.
 
 Provide your analysis in this exact JSON structure:
 
@@ -247,7 +242,7 @@ Requirements:
 -Return in text which is in raw JSON only, no formatting
 
 Topic description:
-"${explanationDesc}"`);
+"${searchTopic}"`);
       console.log("Gemini Response :", flashCards);
 
       let parsed;

@@ -9,32 +9,11 @@ import { Calendar, Upload, Clock, Target, BookOpen} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateText } from "../integrations/gemini/generate";
 
-// function parseJsonLines(data: string): {
-//   totalHours: string; // keep raw line 1 as string
-//   daysNeeded: string; // keep raw line 2 as string
-// } {
-//   // Split and drop blank lines
-//   const lines = stripCodeFences(data)
-//     .split(/\r?\n/)
-//     .map((l) => l.trim())
-//     .filter(Boolean);
-
-//   const totalHoursArr = lines[0] ? parseLine(lines[0]) : [];
-//   const daysNeededArr = lines[1] ? parseLine(lines[1]) : [];
-
-//   return {
-//     // Keep raw line 1/2 (after cleanup) to parse more flexibly below
-//     totalHours: totalHoursArr[0] ?? "",
-//     daysNeeded: daysNeededArr[0] ?? "",
-//   };
-// }
-
 function stripCodeFences(t: string) {
   return t.replace(/^```[\s\S]*?\n?|\n?```$/g, "").trim();
 }
 
 function toStringArray(value: unknown): string[] {
-  // Normalize any value to string[]
   if (Array.isArray(value)) return value.map((v) => String(v).trim());
   if (value === null || value === undefined) return [];
   return [String(value).trim()];
@@ -43,7 +22,6 @@ function toStringArray(value: unknown): string[] {
 function parseLine(line: string): string[] {
   const clean = stripCodeFences(line).trim();
 
-  // Try JSON first
   try {
     const parsed = JSON.parse(clean);
     return toStringArray(parsed);
@@ -99,10 +77,9 @@ const StudyPlanner = () => {
     setIsGenerating(true);
 
     try {
-          // 🔑 CHANGE 3: Modified prompt to include enhanced version
           const today: Date = new Date();
           const year = today.getFullYear();
-          const month = today.getMonth() + 1; // Add 1 because months are 0-indexed
+          const month = today.getMonth() + 1; 
           const day = today.getDate();
 
           console.log(`Today's date: ${year}-${month}-${day}`);
@@ -153,10 +130,6 @@ const StudyPlanner = () => {
         setIsGenerating(false);
         return;
       }
-
-
-
-    // Simulate AI processing
     
       const finalSchedule: StudySchedule = {
         topics: parsed.studyTopics || [],
@@ -191,7 +164,6 @@ const StudyPlanner = () => {
       case 'Easy': return 'success';
       case 'Medium': return 'warning';
       case 'Hard': return 'destructive';
-      default: return 'secondary';
     }
   };
 
@@ -278,7 +250,7 @@ const StudyPlanner = () => {
                 onClick={generateSchedule}
                 disabled={isGenerating || !syllabusText.trim()}
                 variant="hero"
-                className="w-full"
+                className="w-full "
               >
                 {isGenerating ? (
                   <>
