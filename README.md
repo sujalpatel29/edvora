@@ -64,19 +64,23 @@ The system integrates modern web technologies with AI to improve academic produc
 ```bash
 edvora/
 │
+├── public/
 ├── src/
+│ ├── assets/
 │ ├── components/
-│ ├── pages/
+│ ├── hooks/
+│ ├── integrations/
 │ ├── lib/
+│ ├── pages/
+│ ├── App.tsx
 │ └── main.tsx
 │
-├── server/
-│ ├── routes/
-│ ├── controllers/
-│ └── index.js
-│
+├── supabase/
 ├── .env
+├── index.html
 ├── package.json
+├── tailwind.config.ts
+├── tsconfig.json
 └── vite.config.ts
 ```
 
@@ -137,7 +141,7 @@ PORT=5000
 
 1. Create Supabase project
 2. Enable Email/Password Authentication
-3. Create tables:\
+3. Create tables:
 - profiles
 - study_plans
 - learning_content
