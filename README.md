@@ -61,7 +61,7 @@ The system integrates modern web technologies with AI to improve academic produc
 ---
 
 ## 📂 Project Structure
-
+```bash
 edvora/
 │
 ├── src/
@@ -78,6 +78,7 @@ edvora/
 ├── .env
 ├── package.json
 └── vite.config.ts
+```
 
 
 ---
@@ -136,10 +137,10 @@ PORT=5000
 
 1. Create Supabase project
 2. Enable Email/Password Authentication
-3. Create tables:
-profiles
-study_plans
-learning_content
+3. Create tables:\
+- profiles
+- study_plans
+- learning_content
 
 Copy Project URL + Anon Key into .env.
 
