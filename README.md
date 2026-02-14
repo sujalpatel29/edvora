@@ -173,8 +173,10 @@ http://localhost:5173
 ```
 ## 📸 Screenshots
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/387efbee-228a-42ea-8412-d4a4c6d8714f" />
+
 ### Content Analyzer
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/4da7543d-7419-473e-bd61-1462c8588bf6" />
+
 ### Learning Hub
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/9e8dfa19-dce8-488f-a010-a26062213e35" />
 <img width="900" alt="image" src="https://github.com/user-attachments/assets/ab8ddfb2-69f6-4011-bc7e-57d15770d4e3" />
